@@ -17,22 +17,14 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async');
 
-const MAX_BACKOFF_MS = 30 * 60 * 1000;
-const PROCESS_TIMEOUT_MS = 35 * 1000;
+const MAX_BACKOFF = 30 * 60 * 1000;
+const PROCESS_TIMEOUT = 35 * 1000;
 const MAX_OUTPUT_CHARS = 1024 * 1024;
 const MAX_ERROR_CHARS = 240;
 const PRICE_FORMAT = new Intl.NumberFormat('vi-VN');
-const DECIMAL_FORMAT = new Intl.NumberFormat('vi-VN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-});
 
 function formatPrice(value) {
     return Number.isFinite(value) ? PRICE_FORMAT.format(value) : '—';
-}
-
-function formatDecimal(value) {
-    return Number.isFinite(value) ? DECIMAL_FORMAT.format(value) : '—';
 }
 
 function formatSignedPrice(value) {
@@ -99,7 +91,7 @@ class SafeCommandRunner {
         let timedOut = false;
         this._timeoutId = GLib.timeout_add(
             GLib.PRIORITY_DEFAULT,
-            PROCESS_TIMEOUT_MS,
+            PROCESS_TIMEOUT,
             () => {
                 this._timeoutId = 0;
                 if (this._proc === proc && serial === this._serial) {
@@ -117,7 +109,7 @@ class SafeCommandRunner {
                 throw new Error('__SJC_CANCELLED__');
 
             if (timedOut)
-                throw new Error(`Quá thời gian ${PROCESS_TIMEOUT_MS / 1000} giây`);
+                throw new Error(`Quá thời gian ${PROCESS_TIMEOUT / 1000} giây`);
 
             const out = stdout ?? '';
             const err = stderr ?? '';
@@ -127,7 +119,7 @@ class SafeCommandRunner {
             return {stdout: out, stderr: err, successful: proc.get_successful()};
         } catch (error) {
             if (timedOut)
-                throw new Error(`Quá thời gian ${PROCESS_TIMEOUT_MS / 1000} giây`);
+                throw new Error(`Quá thời gian ${PROCESS_TIMEOUT / 1000} giây`);
             throw error;
         } finally {
             if (serial === this._serial) {
@@ -366,7 +358,7 @@ class SjcGoldWidget extends St.Widget {
 
         const interval = this._settings.get_int('duration') * 60 * 1000;
         const factor = 2 ** (this._failureCount - 1);
-        const maxDelay = Math.max(interval, MAX_BACKOFF_MS);
+        const maxDelay = Math.max(interval, MAX_BACKOFF);
 
         this._scheduleNextRefresh(
             Math.min(interval * factor, maxDelay)

@@ -6,7 +6,8 @@
  */
 
 import Adw from 'gi://Adw';
-import Gtk from 'gi://Gtk?version=4.0';
+import Gtk from 'gi://Gtk';
+import Gio from 'gi://Gio';
 
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
@@ -15,15 +16,12 @@ export default class SjcGoldPreferences extends ExtensionPreferences {
         window.set_default_size(600, -1);
         this._settings = this.getSettings();
 
-        const page = new Adw.PreferencesPage({
-            title: 'Widget giá vàng SJC',
-            icon_name: 'preferences-desktop-display-symbolic',
-        });
+        const page = new Adw.PreferencesPage();
 
         // Vị trí
         const positionGroup = new Adw.PreferencesGroup({
             title: 'Vị trí',
-            description: 'Thay đổi vị trí xuất hiện của widget.',
+            description: 'Thay đổi vị trí xuất hiện của widget.'
         });
 
         // Trái
@@ -32,8 +30,7 @@ export default class SjcGoldPreferences extends ExtensionPreferences {
         const left = new Gtk.Adjustment({
             lower: 0,
             upper: 10000,
-            step_increment: 5,
-            value: this._settings.get_int('left'),
+            step_increment: 5
         });
 
         const leftRow = new Adw.SpinRow({
@@ -42,14 +39,10 @@ export default class SjcGoldPreferences extends ExtensionPreferences {
             adjustment: left,
             digits: 0,
             numeric: true,
-            snap_to_ticks: true,
+            snap_to_ticks: true
         });
 
-        leftRow.connect('notify::value', row => {
-            const value = Math.round(row.get_value());
-            if (this._settings.get_int('left') !== value)
-                this._settings.set_int('left', value);
-        });
+        this._settings.bind('left', left, 'value', Gio.SettingsBindFlags.DEFAULT);
 
         // Trên
         const topKey = this._settings.settings_schema.get_key('top');
@@ -57,8 +50,7 @@ export default class SjcGoldPreferences extends ExtensionPreferences {
         const top = new Gtk.Adjustment({
             lower: 0,
             upper: 10000,
-            step_increment: 5,
-            value: this._settings.get_int('top'),
+            step_increment: 5
         });
 
         const topRow = new Adw.SpinRow({
@@ -67,14 +59,10 @@ export default class SjcGoldPreferences extends ExtensionPreferences {
             adjustment: top,
             digits: 0,
             numeric: true,
-            snap_to_ticks: true,
+            snap_to_ticks: true
         });
 
-        topRow.connect('notify::value', row => {
-            const value = Math.round(row.get_value());
-            if (this._settings.get_int('top') !== value)
-                this._settings.set_int('top', value);
-        });
+        this._settings.bind('top', top, 'value', Gio.SettingsBindFlags.DEFAULT);
         
         // Chu kỳ cập nhật
         const durationGroup = new Adw.PreferencesGroup({
@@ -101,9 +89,7 @@ export default class SjcGoldPreferences extends ExtensionPreferences {
         });
 
         durationRow.connect('notify::value', row => {
-            const value = Math.round(row.get_value());
-            if (this._settings.get_int('duration') !== value)
-                this._settings.set_int('duration', value);
+            this._settings.set_int('duration', row.get_value_as_int());
         });
 
         positionGroup.add(leftRow);
@@ -112,60 +98,29 @@ export default class SjcGoldPreferences extends ExtensionPreferences {
         page.add(positionGroup);
         page.add(durationGroup);
         window.add(page);
-        this._addAboutButton(window);
+        
+        // About
+        const aboutGroup = new Adw.PreferencesGroup();
+        const aboutRow = new Adw.ActionRow({title: 'Giới thiệu', activatable: true});
+        aboutRow.add_suffix(new Gtk.Image({icon_name: 'help-about-symbolic'}));
+        aboutRow.connect('activated', () => this._showAbout(window));
+        aboutGroup.add(aboutRow);
+        page.add(aboutGroup);
 
-    }
-
-    _addAboutButton(window) {
-        const headerBar = this._findHeaderBar(window);
-        if (!headerBar)
-            return;
-
-        const aboutButton = new Gtk.Button({
-            icon_name: 'open-menu-symbolic',
-            tooltip_text: 'About',
-            valign: Gtk.Align.CENTER,
-        });
-        aboutButton.add_css_class('flat');
-        aboutButton.connect('clicked', () => this._showAbout(window));
-
-        headerBar.pack_end(aboutButton);
-    }
-
-    _findHeaderBar(widget) {
-        if (widget instanceof Adw.HeaderBar)
-            return widget;
-
-        for (let child = widget.get_first_child(); child;
-            child = child.get_next_sibling()) {
-            const headerBar = this._findHeaderBar(child);
-            if (headerBar)
-                return headerBar;
-        }
-
-        return null;
     }
 
     _showAbout(window) {
-        const params = {
+        const about = new Adw.AboutWindow({
             application_name: this.metadata.name,
             developer_name: 'Bình Nguyễn',
             version: this.metadata['version-name'],
             website: 'https://www.binhnguyensoft.com',
             issue_url: `${this.metadata.url.replace(/\/+$/, '')}/issues`,
-        };
-
-        if (Adw.AboutDialog) {
-            const about = new Adw.AboutDialog(params);
-            about.present(window);
-        } else {
-            const about = new Adw.AboutWindow({
-                ...params,
-                transient_for: window,
-                modal: true,
-            });
-            about.present();
-        }
+            issue_url: `${this.metadata.url}/issues`,
+            transient_for: window,
+            modal: true,
+        });
+        about.present();
     }
 
 }
