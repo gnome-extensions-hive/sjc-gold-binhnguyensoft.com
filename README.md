@@ -57,3 +57,20 @@ gnome-extensions enable sjc-gold@binhnguyensoft.com
 Mặc định, dữ liệu cập nhật 5 phút một lần, vị trí xuất hiện widget: trên 15px, trái 15px. Nếu muốn thay đổi, mở app Extension Manager, sẽ có nút Cài đặt xuất hiện ngay dòng SJC Gold Widget, bấm vào nó để thay đổi. KHUYÊN CÁO: đừng nên cập nhật quá thường xuyên để tránh trường hợp server SJC chặn. Giá SJC cũng không thay đổi nhanh nên 5 - 10 phút hãy cập nhật một lần.
 
 ![Preferences](preferences.webp)
+
+## Kiểm thử Python
+
+Chạy unit test bằng thư viện chuẩn Python; không cần `curl_cffi`, GNOME hoặc kết nối mạng. HTTP được mock:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Ghi số lần thực thi từng dòng Python và mã revision tương ứng:
+
+```bash
+git rev-parse HEAD
+python3 -m trace --count --missing --summary --coverdir /tmp/sjc-gold-coverage --module unittest discover -s tests
+```
+
+File `/tmp/sjc-gold-coverage/sjc_price.cover` chứa kết quả cho `sjc_price.py`. Đây chỉ là bằng chứng unit test Python, không phải coverage tích hợp hoặc end-to-end của GNOME.
