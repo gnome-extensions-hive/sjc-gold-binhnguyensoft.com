@@ -14,7 +14,7 @@ import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/ex
 export default class SjcGoldPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         window.set_default_size(600, -1);
-        this._settings = this.getSettings();
+        const settings = this.getSettings();
 
         const page = new Adw.PreferencesPage();
 
@@ -25,7 +25,7 @@ export default class SjcGoldPreferences extends ExtensionPreferences {
         });
 
         // Trái
-        const leftKey = this._settings.settings_schema.get_key('left');
+        const leftKey = settings.settings_schema.get_key('left');
         
         const left = new Gtk.Adjustment({
             lower: 0,
@@ -42,10 +42,10 @@ export default class SjcGoldPreferences extends ExtensionPreferences {
             snap_to_ticks: true
         });
 
-        this._settings.bind('left', left, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('left', left, 'value', Gio.SettingsBindFlags.DEFAULT);
 
         // Trên
-        const topKey = this._settings.settings_schema.get_key('top');
+        const topKey = settings.settings_schema.get_key('top');
         
         const top = new Gtk.Adjustment({
             lower: 0,
@@ -62,7 +62,7 @@ export default class SjcGoldPreferences extends ExtensionPreferences {
             snap_to_ticks: true
         });
 
-        this._settings.bind('top', top, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('top', top, 'value', Gio.SettingsBindFlags.DEFAULT);
         
         // Chu kỳ cập nhật
         const durationGroup = new Adw.PreferencesGroup({
@@ -70,13 +70,12 @@ export default class SjcGoldPreferences extends ExtensionPreferences {
             description: 'Thay đổi chu kỳ cập nhật giá.',
         });
         
-        const durationKey = this._settings.settings_schema.get_key('duration');
+        const durationKey = settings.settings_schema.get_key('duration');
 
         const duration = new Gtk.Adjustment({
             lower: 5,
             upper: 300,
-            step_increment: 5,
-            value: this._settings.get_int('duration'),
+            step_increment: 5
         });
 
         const durationRow = new Adw.SpinRow({
@@ -88,9 +87,7 @@ export default class SjcGoldPreferences extends ExtensionPreferences {
             snap_to_ticks: true,
         });
 
-        durationRow.connect('notify::value', row => {
-            this._settings.set_int('duration', row.get_value_as_int());
-        });
+        settings.bind('duration', duration, 'value', Gio.SettingsBindFlags.DEFAULT);
 
         positionGroup.add(leftRow);
         positionGroup.add(topRow);
