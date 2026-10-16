@@ -9,6 +9,7 @@
 #!/usr/bin/env python3
 
 import json
+import math
 import sys
 import xml.etree.ElementTree as ET
 
@@ -87,6 +88,13 @@ def parse_sjc(body):
     if selected is None:
         raise ValueError("Không tìm thấy vàng SJC 1L trong JSON")
 
+    for key in ("buy", "sell"):
+        val = selected[key]
+        if isinstance(val, bool) or not isinstance(val, (int, float)):
+            raise ValueError(f"Giá {key} không hợp lệ")
+        if not (math.isfinite(val) and val > 0):
+            raise ValueError(f"Giá {key} không hợp lệ")
+
     return selected
 
 
@@ -109,8 +117,11 @@ def parse_vcb_usd_sell(body):
     item = root.find("./Exrate[@CurrencyCode='USD']")
 
     if item is not None:
-        rate = float(item.attrib["Sell"].replace(",", ""))
-        if rate > 0:
+        try:
+            rate = float(item.attrib["Sell"].replace(",", ""))
+        except (ValueError, KeyError):
+            raise ValueError("Không tìm thấy tỷ giá bán USD")
+        if math.isfinite(rate) and rate > 0:
             return rate
 
     raise ValueError("Không tìm thấy tỷ giá bán USD")
@@ -130,9 +141,16 @@ def get_vcb_usd_sell():
 # Lấy giá vàng spot quốc tế
 def parse_spot_usd_oz(body):
     data = json.loads(body.strip().lstrip("\ufeff"))
-    price = float(data["spot_usd_oz"])
+    val = data["spot_usd_oz"]
+    if isinstance(val, bool) or not isinstance(val, (int, float, str)):
+        raise ValueError("Giá vàng spot không hợp lệ")
 
-    if price > 0:
+    try:
+        price = float(val)
+    except (ValueError, TypeError):
+        raise ValueError("Giá vàng spot không hợp lệ")
+
+    if math.isfinite(price) and price > 0:
         return price
 
     raise ValueError("Giá vàng spot không hợp lệ")
@@ -166,8 +184,19 @@ def add_international_data(result):
     premium = None
 
     if spot is not None and usd_vnd is not None:
-        international = spot * usd_vnd * 37.5 / 31.1034768
-        premium = result["sell"] - international
+        try:
+            inter_val = spot * usd_vnd * 37.5 / 31.1034768
+            if not math.isfinite(inter_val):
+                raise OverflowError("Derived international price overflow")
+            prem_val = result["sell"] - inter_val
+            if not math.isfinite(prem_val):
+                raise OverflowError("Derived premium price overflow")
+            international = inter_val
+            premium = prem_val
+        except Exception as error:
+            market_errors.append(f"Calculation: {error}")
+            international = None
+            premium = None
 
     result.update({
         "spot_usd_oz": spot,
@@ -193,11 +222,28 @@ def main():
         }
         exit_code = 1
 
-    print(json.dumps(
-        result,
-        ensure_ascii=False,
-        separators=(",", ":"),
-    ))
+    try:
+        encoded = json.dumps(
+            result,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    except Exception as error:
+        result = {
+            "error": f"Lấy dữ liệu thất bại: {error}",
+            "buy": None,
+            "sell": None,
+        }
+        exit_code = 1
+        encoded = json.dumps(
+            result,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+
+    print(encoded)
     return exit_code
 
 
