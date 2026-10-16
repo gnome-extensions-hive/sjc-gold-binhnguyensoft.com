@@ -22,9 +22,17 @@ const PROCESS_TIMEOUT = 35 * 1000;
 const MAX_OUTPUT_CHARS = 1024 * 1024;
 const MAX_ERROR_CHARS = 240;
 const PRICE_FORMAT = new Intl.NumberFormat('vi-VN');
+const DECIMAL_FORMAT = new Intl.NumberFormat('vi-VN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+});
 
 function formatPrice(value) {
     return Number.isFinite(value) ? PRICE_FORMAT.format(value) : '—';
+}
+
+function formatDecimal(value) {
+    return Number.isFinite(value) ? DECIMAL_FORMAT.format(value) : '—';
 }
 
 function formatSignedPrice(value) {
