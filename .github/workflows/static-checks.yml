@@ -1,0 +1,31 @@
+name: Static checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Check Python syntax
+        run: python3 -m py_compile sjc_price.py
+      - name: Check JavaScript module syntax
+        run: |
+          for file in extension.js prefs.js; do
+            node --input-type=module --check < "$file"
+          done
+      - name: Parse metadata and schema XML
+        run: |
+          python3 -m json.tool metadata.json > /dev/null
+          python3 -c 'import xml.etree.ElementTree as ET; ET.parse("schemas/org.gnome.shell.extensions.sjc-gold-binhnguyensoft-com.gschema.xml")'
